@@ -20,7 +20,7 @@ class TradeLogger:
                     "Stop_Loss", "Take_Profit", "RSI_Value"
                 ])
 
-    def log_signal(self, symbol: str, signal: str, price: float, sl: float, tp: float, rsi: float):
+    def log_signal(self, symbol: str, signal: str, price: float, sl: float, tp: float, rsi: float, atr: float):
         """Registra una nueva señal en el CSV."""
         with open(self.file_path, mode='a', newline='') as f:
             writer = csv.writer(f)
@@ -31,5 +31,6 @@ class TradeLogger:
                 round(price, 2),
                 round(sl, 2),
                 round(tp, 2),
-                round(rsi, 2)
+                round(rsi, 2),
+                round(atr, 4)
             ])

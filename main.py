@@ -1,6 +1,5 @@
 import polars as pl
 import datetime
-import time
 import os
 from src.data_loader.downloader import DataDownloader
 from src.processors.feature_engineering import FeatureProcessor
@@ -11,96 +10,75 @@ from src.alerts.chart_generator import ChartGenerator
 from src.alerts.trade_logger import TradeLogger
 
 def run_live_pipeline(ticker: str):
-    # --- CONFIGURACIÓN DE ACCESO ---
     TOKEN = os.getenv("TELEGRAM_TOKEN")
     CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-    
-    # 0. INICIALIZACIÓN DE SEGURIDAD
-    signal = None
-    entry_price = 0.0
-    sl = 0.0
-    tp = 0.0
     
     # 1. Ingesta (Capa 1)
     downloader = DataDownloader()
     raw_data = downloader.fetch_history(ticker, interval="5m", period="1d")
     
-    # 2. Procesamiento (Capa 2)
+    # 2. Procesamiento (Capa 2) - Ahora incluye ATR
     processor = FeatureProcessor()
     df_processed = processor.calculate_indicators(raw_data) 
     
-    # 3. Estrategia con Filtro SMA_200 (Capa 3)
-    strategy = RSISymbolicStrategy(rsi_overbought=70, rsi_oversold=30)
-    signal, entry_price, sl, tp = strategy.generate_signal(df_processed)
+    # --- EXTRACCIÓN DE DATOS CLAVE ---
+    last_row = df_processed.tail(1)
+    current_price = last_row["Close"][0]
+    current_rsi = last_row["RSI"][0]
+    current_atr = last_row["ATR"][0] # <--- EXTRAEMOS EL ATR
     
-    # # --- BLOQUE DE PRUEBA SINTÉTICA (Forzado para validar Gráficos) ---
-    # if not signal:
-    #     print(f"🧪 Forzando señal de prueba para {ticker}...")
-    #     signal = "long"
-    #     entry_price = df_processed['Close'][-1]
-    #     sl = entry_price * 0.98  # Stop Loss al 2%
-    #     tp = entry_price * 1.05  # Take Profit al 5%
-    # # -----------------------------------------------------------------
-
-    # 4. Gestión de Riesgo (Capa 4)
+    # 3. Estrategia (Capa 3)
+    strategy = RSISymbolicStrategy(rsi_overbought=70, rsi_oversold=30)
+    # Nota: Tu estrategia actual genera SL/TP internos, pero ahora usaremos el RM
+    signal, entry_price, _, _ = strategy.generate_signal(df_processed)
+    
+    # 4. Gestión de Riesgo Adaptativa (Capa 4)
     rm = RiskManager(account_balance=10000.0, max_risk_per_trade=0.005)    
 
-    # 5. Notificación con Soporte Visual (Capa 6)
     if signal:
-        pos_size = rm.calculate_position_size(entry_price, sl)
+        # A. CALCULAMOS NIVELES DINÁMICOS CON EL ATR
+        sl, tp = rm.get_trade_levels(current_price, current_atr, signal)
         
-        if isinstance(pos_size, (int, float)) and pos_size > 0:
-            print(f"🎨 Generando gráfico para {ticker}...")
-            # A. Generar el gráfico técnico
+        # B. CALCULAMOS TAMAÑO DE POSICIÓN
+        pos_size = rm.calculate_position_size(current_price, sl)
+        
+        if pos_size > 0:
+            # C. GENERAR GRÁFICO
             chart_gen = ChartGenerator()
             chart_file = chart_gen.generate_signal_chart(df_processed, ticker, signal)
             
-            # B. Enviar notificación completa (Imagen + Texto)
+            # D. NOTIFICACIÓN TELEGRAM
             notifier = TelegramNotifier(token=TOKEN, chat_id=CHAT_ID)
             notifier.send_signal(
                 symbol=ticker,
                 signal_type=signal,
-                price=entry_price,
+                price=current_price,
                 sl=sl,
                 tp=tp,
                 risk_pct=0.5,
                 chart_path=chart_file
             )
-            print(f"🚀 {datetime.datetime.now()} - ALERTA VISUAL ENVIADA: {ticker} ({signal})")
-        else:
-            print(f"⚠️ Señal {signal} para {ticker} bloqueada por gestión de riesgo.")
-        
-        # C. REGISTRO EN LOG DE AUDITORÍA
-        logger = TradeLogger()
-        # Obtenemos el RSI actual para el log
-        current_rsi = df_processed['RSI'][-1]
-        
-        logger.log_signal(
-            symbol=ticker,
-            signal=signal,
-            price=entry_price,
-            sl=sl,
-            tp=tp,
-            rsi=current_rsi
-        )
+            
+            # E. REGISTRO EN LOG (Ahora con ATR)
+            logger = TradeLogger()
+            logger.log_signal(
+                symbol=ticker,
+                signal=signal,
+                price=current_price,
+                sl=sl,
+                tp=tp,
+                rsi=current_rsi,
+                atr=current_atr
+            )
+            print(f"🚀 {datetime.datetime.now()} - SEÑAL ATR ENVIADA: {ticker} ({signal})")
     else:
-        # Esto solo se ejecutaría si quitaras el bloque de prueba sintética
-        ultimo_rsi = df_processed['RSI'][-1]
-        print(f"😴 {datetime.datetime.now()} - {ticker}: Sin ventaja (RSI: {ultimo_rsi:.2f})")
+        print(f"😴 {datetime.datetime.now()} - {ticker}: Sin ventaja (RSI: {current_rsi:.2f} | ATR: {current_atr:.4f})")
 
 if __name__ == "__main__":
-    # Cargamos las variables desde el entorno (GitHub Secrets)
-    TOKEN = os.getenv("TELEGRAM_TOKEN")
-    CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-    
     watchlist = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "AVAX-USD"]
-    
-    print(f"🕒 Ejecución programada: {datetime.datetime.now()}")
+    print(f"🕒 Ejecución programada con ATR: {datetime.datetime.now()}")
     for ticker in watchlist:
         try:
             run_live_pipeline(ticker)
         except Exception as e:
             print(f"❌ Error en {ticker}: {e}")
-    
-    # IMPORTANTE: No usamos while True en GitHub Actions. 
-    # El script termina y GitHub lo reinicia según el cron.

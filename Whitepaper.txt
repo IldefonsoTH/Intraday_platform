@@ -1,0 +1,307 @@
+# 📄 WHITEPAPER
+
+# Intraday Intelligence Platform
+
+### Plataforma Cuantitativa de Research y Señales para Day Trading
+
+---
+
+# 1. Resumen Ejecutivo
+
+Intraday Intelligence Platform es una infraestructura cuantitativa diseñada para:
+
+* Procesar datos financieros públicos en tiempo real.
+* Analizar múltiples activos intradía.
+* Generar señales basadas en modelos estadísticos.
+* Aplicar gestión de riesgo automatizada.
+* Proporcionar un entorno de investigación y validación robusto.
+
+El objetivo principal es desarrollar una arquitectura profesional que permita evolucionar desde una herramienta personal de aprendizaje hasta una plataforma escalable tipo SaaS.
+
+---
+
+# 2. Problema
+
+El day trading presenta múltiples desafíos:
+
+* Alta competencia (HFT, fondos cuantitativos).
+* Ruido de mercado elevado.
+* Sobreoptimización en estrategias.
+* Falta de gestión de riesgo profesional.
+* Carencia de validación estadística rigurosa en retail.
+
+La mayoría de traders minoristas carecen de:
+
+* Framework cuantitativo.
+* Sistema automatizado.
+* Análisis multi-activo.
+* Control de exposición y drawdown.
+
+---
+
+# 3. Propuesta de Solución
+
+Construcción de una plataforma modular con:
+
+1. Ingesta de datos en tiempo real.
+2. Feature engineering automático.
+3. Motor de estrategias configurable.
+4. Sistema de backtesting robusto.
+5. Gestión de riesgo integrada.
+6. Dashboard interactivo.
+7. Motor de investigación distribuido con PySpark.
+
+---
+
+# 4. Arquitectura del Sistema
+
+## 4.1 Visión General
+
+Capa 1 – Data Layer
+Capa 2 – Processing Layer
+Capa 3 – Strategy Engine
+Capa 4 – Risk Management
+Capa 5 – Backtesting & Research
+Capa 6 – Presentation Layer
+
+---
+
+## 4.2 Data Layer
+
+### Fuentes de datos
+
+* APIs públicas de mercado (crypto y/o acciones).
+* Velas OHLC (1m, 5m, 15m).
+* Volumen.
+* Datos históricos.
+
+### Estructura de almacenamiento
+
+Formato inicial:
+
+* Parquet por activo/timeframe.
+
+Escalabilidad:
+
+* PostgreSQL (operacional).
+* Data Lake (Parquet/Delta).
+* Integración futura con Spark.
+
+---
+
+## 4.3 Processing Layer
+
+Funciones principales:
+
+* Limpieza de datos.
+* Normalización temporal.
+* Cálculo de indicadores técnicos.
+* Generación de features cuantitativas.
+
+Indicadores base:
+
+* EMA / SMA
+* RSI
+* MACD
+* ATR
+* VWAP
+* Volatilidad rolling
+* Volumen relativo
+
+---
+
+# 5. Motor de Estrategias
+
+## 5.1 Diseño
+
+Arquitectura basada en clases:
+
+* BaseStrategy (clase abstracta)
+* Estrategias específicas heredan de BaseStrategy
+
+Cada estrategia debe devolver:
+
+* Tipo de señal (Long / Short / None)
+* Stop loss sugerido
+* Take profit sugerido
+* Nivel de riesgo
+
+## 5.2 Estrategias iniciales
+
+* Breakout de rango
+* Pullback a VWAP
+* RSI extremo
+* Momentum con volumen inusual
+* Opening range breakout
+
+---
+
+# 6. Motor de Gestión de Riesgo
+
+Elemento central del sistema.
+
+## 6.1 Cálculos obligatorios
+
+* Tamaño de posición basado en % riesgo.
+* Risk/Reward ratio mínimo.
+* Exposición máxima simultánea.
+* Control automático de drawdown.
+
+## 6.2 Reglas iniciales
+
+* Riesgo por trade: 0.5%–2%.
+* Exposición total máxima: 5%.
+* Corte automático si drawdown supera umbral definido.
+
+---
+
+# 7. Motor de Backtesting
+
+Debe permitir:
+
+* Simulación intradía realista.
+* Slippage configurable.
+* Comisiones configurables.
+* Multi-activo.
+* Evaluación por franja horaria.
+
+## 7.1 Métricas clave
+
+* Profit total %
+* Win rate
+* Profit factor
+* Sharpe ratio
+* Max drawdown
+* Expectancy
+* Equity curve
+
+---
+
+# 8. Modo Live
+
+## 8.1 Funcionalidades
+
+* Escucha continua de nuevas velas.
+* Ejecución automática de estrategias.
+* Registro de señales.
+* Simulación paper trading.
+
+## 8.2 Alertas
+
+* Notificaciones Telegram.
+* Alertas en dashboard.
+* Registro persistente.
+
+---
+
+# 9. Research Distribuido con PySpark
+
+Fase avanzada.
+
+Objetivos:
+
+* Análisis multi-activo masivo.
+* Comparación estadística de estrategias.
+* Ranking automático.
+* Evaluación por:
+
+  * Hora del día
+  * Día de la semana
+  * Régimen de mercado
+  * Nivel de volatilidad
+
+Resultado:
+Identificación de condiciones donde cada estrategia presenta ventaja estadística.
+
+---
+
+# 10. Frontend
+
+## 10.1 Fase inicial
+
+* Streamlit.
+
+## 10.2 Fase profesional
+
+* Backend: FastAPI.
+* Frontend: React.
+* WebSockets para datos live.
+
+## 10.3 Módulos visuales
+
+1. Vista Mercado.
+2. Vista Estrategias.
+3. Vista Riesgo.
+4. Historial de trades.
+5. Ranking de oportunidades.
+
+---
+
+# 11. Roadmap Técnico (6 Meses)
+
+Mes 1:
+
+* Ingesta histórica.
+* Visualización básica.
+* Indicadores.
+
+Mes 2:
+
+* Backtesting funcional.
+* Métricas.
+
+Mes 3:
+
+* Gestión de riesgo profesional.
+* Simulación avanzada.
+
+Mes 4:
+
+* Integración live.
+* Alertas.
+
+Mes 5:
+
+* Implementación PySpark.
+* Ranking automático.
+
+Mes 6:
+
+* Optimización robusta.
+* Sistema completamente integrado.
+
+---
+
+# 12. Principios Fundamentales
+
+1. No sobreoptimizar.
+2. Validar estadísticamente.
+3. Priorizar gestión de riesgo.
+4. Automatizar disciplina.
+5. Evaluar robustez antes de rentabilidad.
+
+---
+
+# 13. Evolución Potencial
+
+* Plataforma SaaS de señales cuantitativas.
+* Sistema híbrido con modelos ML.
+* Marketplace de estrategias.
+* Plataforma colaborativa de research.
+
+---
+
+# Conclusión
+
+Intraday Intelligence Platform no es un sistema de predicción.
+
+Es una infraestructura cuantitativa diseñada para:
+
+* Medir.
+* Evaluar.
+* Gestionar riesgo.
+* Operar bajo reglas estadísticas.
+* Evolucionar hacia un sistema profesional escalable.
+
+El verdadero activo del proyecto no será la señal,
+sino la arquitectura, la disciplina y la validación estadística.
